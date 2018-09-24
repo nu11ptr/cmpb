@@ -1,6 +1,9 @@
 package strutil
 
-import "bytes"
+import (
+	"bytes"
+	"strings"
+)
 
 type strState int
 
@@ -90,4 +93,26 @@ func Truncate(s string, l int) (string, bool) {
 		}
 	}
 	return buf.String(), true
+}
+
+// Resize makes sure string is exactly the length of l. If it isn't it will pad spaces at the
+// end as needed or truncate and indicate that via the post string
+func Resize(s, post string, l int) string {
+	postLen := Len(post)
+	if postLen > l {
+		panic("Post string must be shorter than desired length")
+	}
+
+	sLen := Len(s)
+	// Perfect length, return as is
+	if sLen == l {
+		return s
+	}
+	// Too short - pad to the right
+	if sLen < l {
+		return s + strings.Repeat(" ", l-sLen)
+	}
+	// Too long - truncate
+	s2, _ := Truncate(s, l-postLen)
+	return s2 + post
 }

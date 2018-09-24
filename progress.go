@@ -11,37 +11,48 @@ import (
 
 const (
 	defaultInterval = 200 * time.Millisecond
-	defaultWidth    = 20 // Each char = 5%
+
+	defaultPrePad       = 0
+	defaultKeyWidth     = 10
+	defaultActonWidth   = 20
+	defaultPreBarWidth  = 9  // Time (max size = 00h00m00s)
+	defaultBarWidth     = 22 // Each char = 5% (+2 for left and right bracket)
+	defaultPostBarWidth = 4  // Percentage (max size = 100%)
 
 	slMapCap = 16
 )
 
 var (
+	defaultPost     = color.HiCyanString("...")
+	defaultKeyDiv   = color.HiCyanString(":")
 	defaultLBracket = color.HiCyanString("[")
 	defaultRBracket = color.HiCyanString("]")
 	defaultEmpty    = color.HiYellowString("-")
 	defaultFull     = color.HiGreenString("=")
-	defaultCurr     = color.HiGreenString(">")
+	defaultCurr     = color.GreenString(">")
 )
 
 // Param represents the parameters for a Progress
 type Param struct {
 	Interval time.Duration
-	Width    int
 	Out      io.Writer
 	ScrollUp func(int, io.Writer)
 
-	LBracket, RBracket, Empty, Full, Curr string
+	PrePad, KeyWidth, ActionWidth, PreBarWidth, BarWidth, PostBarWidth int
+
+	Post, KeyDiv, LBracket, RBracket, Empty, Full, Curr string
 }
 
 // DefaultParam builds a Param struct with default values
 func DefaultParam() *Param {
 	return &Param{
-		Interval: defaultInterval, Width: defaultWidth,
-		Out: color.Output, ScrollUp: ansiScrollUp,
+		Interval: defaultInterval, Out: color.Output, ScrollUp: ansiScrollUp,
 
-		LBracket: defaultLBracket, RBracket: defaultRBracket, Empty: defaultEmpty,
-		Full: defaultFull, Curr: defaultCurr,
+		PrePad: defaultPrePad, KeyWidth: defaultKeyWidth, ActionWidth: defaultActonWidth,
+		PreBarWidth: defaultPreBarWidth, BarWidth: defaultBarWidth, PostBarWidth: defaultPostBarWidth,
+
+		Post: defaultPost, KeyDiv: defaultKeyDiv, LBracket: defaultLBracket,
+		RBracket: defaultRBracket, Empty: defaultEmpty, Full: defaultFull, Curr: defaultCurr,
 	}
 }
 
@@ -53,7 +64,7 @@ type Progress struct {
 	wait           sync.WaitGroup
 
 	bars   []*Bar
-	barMap map[interface{}]*Bar
+	barMap map[string]*Bar
 }
 
 // NewWithParam creates a new progress bar collection with specified params
@@ -61,7 +72,7 @@ func NewWithParam(param *Param) *Progress {
 	return &Progress{
 		param:  *param,
 		quitCh: make(chan struct{}), waitCh: make(chan struct{}),
-		bars: make([]*Bar, 0, slMapCap), barMap: make(map[interface{}]*Bar, slMapCap),
+		bars: make([]*Bar, 0, slMapCap), barMap: make(map[string]*Bar, slMapCap),
 	}
 }
 
@@ -75,8 +86,8 @@ func ansiScrollUp(rows int, out io.Writer) {
 }
 
 // NewBar creates a new progress bar and adds it to the progress bar collection
-func (p *Progress) NewBar(key interface{}, total int) *Bar {
-	b := newBar(p, total)
+func (p *Progress) NewBar(key string, total int) *Bar {
+	b := newBar(key, total, p)
 	p.bars = append(p.bars, b)
 	p.barMap[key] = b
 	p.wait.Add(1)
@@ -84,7 +95,7 @@ func (p *Progress) NewBar(key interface{}, total int) *Bar {
 }
 
 // Bar returns the bar stored the given key. The value is nil if it can't be found
-func (p *Progress) Bar(key interface{}) *Bar {
+func (p *Progress) Bar(key string) *Bar {
 	b, _ := p.barMap[key]
 	return b
 }

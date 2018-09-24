@@ -3,6 +3,7 @@ package strutil_test
 import (
 	"testing"
 
+	"github.com/fatih/color"
 	"github.com/nu11ptr/cmpb/strutil"
 )
 
@@ -48,6 +49,28 @@ func TestTruncate(t *testing.T) {
 			if trunc != test.trunc {
 				t.Error("want", test.trunc, "got", trunc)
 			}
+		})
+	}
+}
+
+func TestResize(t *testing.T) {
+	post := color.HiCyanString("...")
+	tests := []struct {
+		name, input, output, post string
+		l                         int
+	}{
+		{"JustRight", color.HiCyanString("abc"), color.HiCyanString("abc"), post, 3},
+		{"TooShort", color.HiCyanString("abc"), color.HiCyanString("abc") + "   ", post, 6},
+		{"TooLong", color.HiCyanString("abcabcabc"), color.HiCyanString("abc") + post, post, 6},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			output := strutil.Resize(test.input, test.post, test.l)
+			if output != test.output {
+				t.Error("want", test.output, "got", output)
+			}
+
 		})
 	}
 }

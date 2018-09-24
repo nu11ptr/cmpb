@@ -10,7 +10,7 @@ import (
 
 const total = 100
 
-var keys = []string{"bar1", "bar2"}
+var keys = []string{"bar1", "bar2", "bar3"}
 
 func main() {
 	p := cmpb.New()

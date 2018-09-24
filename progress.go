@@ -29,6 +29,7 @@ type Progress struct {
 	quitCh, waitCh chan struct{}
 	wait           sync.WaitGroup
 	out            io.Writer
+	scrollUp       func(int, io.Writer)
 
 	lBracket, rBracket, empty, full, curr rune
 
@@ -40,14 +41,19 @@ type Progress struct {
 func New() *Progress {
 	return &Progress{
 		interval: defaultInterval, width: defaultWidth,
+
 		quitCh: make(chan struct{}), waitCh: make(chan struct{}),
-		out: os.Stdout,
+		out: os.Stdout, scrollUp: ansiScrollUp,
 
 		lBracket: defaultLBracket, rBracket: defaultRBracket, empty: defaultEmpty,
 		full: defaultFull, curr: defaultCurr,
 
 		bars: make([]*Bar, 0, slMapCap), barMap: make(map[interface{}]*Bar, slMapCap),
 	}
+}
+
+func ansiScrollUp(rows int, out io.Writer) {
+	fmt.Fprintf(out, "\x1b[%dA", rows)
 }
 
 // NewBar creates a new progress bar and adds it to the progress bar collection
@@ -65,11 +71,13 @@ func (p *Progress) Bar(key interface{}) *Bar {
 	return b
 }
 
-func (p *Progress) render() {
+func (p *Progress) render(scrollUp bool) {
+	if scrollUp {
+		p.scrollUp(len(p.bars), p.out)
+	}
 	for _, bar := range p.bars {
 		fmt.Fprintln(p.out, bar.String())
 	}
-
 	// Done as 2nd pass so all bars are always rendered
 	for _, bar := range p.bars {
 		if bar.lastRender {
@@ -82,10 +90,12 @@ func (p *Progress) render() {
 // Start begins rendering of the progress bars
 func (p *Progress) Start() {
 	go func() {
+		firstTime := true
 		for {
 			select {
 			case <-time.After(p.interval):
-				p.render()
+				p.render(!firstTime)
+				firstTime = false
 			case <-p.quitCh:
 				break
 			}

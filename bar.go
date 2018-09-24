@@ -40,7 +40,7 @@ func (b *Bar) String() string {
 	buf := bytes.Buffer{}
 	param := &b.p.param
 	buf.Grow(param.Width + 2)
-	buf.WriteRune(param.LBracket)
+	buf.WriteString(param.LBracket)
 
 	full := b.curr * param.Width / b.total
 	empty := param.Width - full
@@ -50,11 +50,11 @@ func (b *Bar) String() string {
 		}
 		buf.WriteString(strings.Repeat(string(param.Full), full))
 		if empty > 0 {
-			buf.WriteRune(param.Curr)
+			buf.WriteString(param.Curr)
 		}
 	}
 	buf.WriteString(strings.Repeat(string(param.Empty), empty))
 
-	buf.WriteRune(param.RBracket)
+	buf.WriteString(param.RBracket)
 	return buf.String()
 }

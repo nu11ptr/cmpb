@@ -3,22 +3,25 @@ package cmpb
 import (
 	"fmt"
 	"io"
-	"os"
 	"sync"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 const (
 	defaultInterval = 200 * time.Millisecond
 	defaultWidth    = 20 // Each char = 5%
 
-	defaultLBracket = '['
-	defaultRBracket = ']'
-	defaultEmpty    = '-'
-	defaultFull     = '='
-	defaultCurr     = '>'
-
 	slMapCap = 16
+)
+
+var (
+	defaultLBracket = color.HiCyanString("[")
+	defaultRBracket = color.HiCyanString("]")
+	defaultEmpty    = color.HiYellowString("-")
+	defaultFull     = color.HiGreenString("=")
+	defaultCurr     = color.HiGreenString(">")
 )
 
 // Param represents the parameters for a Progress
@@ -28,14 +31,14 @@ type Param struct {
 	Out      io.Writer
 	ScrollUp func(int, io.Writer)
 
-	LBracket, RBracket, Empty, Full, Curr rune
+	LBracket, RBracket, Empty, Full, Curr string
 }
 
 // DefaultParam builds a Param struct with default values
 func DefaultParam() *Param {
 	return &Param{
 		Interval: defaultInterval, Width: defaultWidth,
-		Out: os.Stdout, ScrollUp: ansiScrollUp,
+		Out: color.Output, ScrollUp: ansiScrollUp,
 
 		LBracket: defaultLBracket, RBracket: defaultRBracket, Empty: defaultEmpty,
 		Full: defaultFull, Curr: defaultCurr,

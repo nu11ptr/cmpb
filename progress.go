@@ -21,35 +21,50 @@ const (
 	slMapCap = 16
 )
 
+// Param represents the parameters for a Progress
+type Param struct {
+	Interval time.Duration
+	Width    int
+	Out      io.Writer
+	ScrollUp func(int, io.Writer)
+
+	LBracket, RBracket, Empty, Full, Curr rune
+}
+
+// DefaultParam builds a Param struct with default values
+func DefaultParam() *Param {
+	return &Param{
+		Interval: defaultInterval, Width: defaultWidth,
+		Out: os.Stdout, ScrollUp: ansiScrollUp,
+
+		LBracket: defaultLBracket, RBracket: defaultRBracket, Empty: defaultEmpty,
+		Full: defaultFull, Curr: defaultCurr,
+	}
+}
+
 // Progress represents a collection of progress bars
 type Progress struct {
-	interval time.Duration
-	width    int
+	param Param
 
 	quitCh, waitCh chan struct{}
 	wait           sync.WaitGroup
-	out            io.Writer
-	scrollUp       func(int, io.Writer)
-
-	lBracket, rBracket, empty, full, curr rune
 
 	bars   []*Bar
 	barMap map[interface{}]*Bar
 }
 
-// New creates a new progress bar
-func New() *Progress {
+// NewWithParam creates a new progress bar collection with specified params
+func NewWithParam(param *Param) *Progress {
 	return &Progress{
-		interval: defaultInterval, width: defaultWidth,
-
+		param:  *param,
 		quitCh: make(chan struct{}), waitCh: make(chan struct{}),
-		out: os.Stdout, scrollUp: ansiScrollUp,
-
-		lBracket: defaultLBracket, rBracket: defaultRBracket, empty: defaultEmpty,
-		full: defaultFull, curr: defaultCurr,
-
 		bars: make([]*Bar, 0, slMapCap), barMap: make(map[interface{}]*Bar, slMapCap),
 	}
+}
+
+// New creates a new progress bar collection with default params
+func New() *Progress {
+	return NewWithParam(DefaultParam())
 }
 
 func ansiScrollUp(rows int, out io.Writer) {
@@ -73,10 +88,10 @@ func (p *Progress) Bar(key interface{}) *Bar {
 
 func (p *Progress) render(scrollUp bool) {
 	if scrollUp {
-		p.scrollUp(len(p.bars), p.out)
+		p.param.ScrollUp(len(p.bars), p.param.Out)
 	}
 	for _, bar := range p.bars {
-		fmt.Fprintln(p.out, bar.String())
+		fmt.Fprintln(p.param.Out, bar.String())
 	}
 	// Done as 2nd pass so all bars are always rendered
 	for _, bar := range p.bars {
@@ -93,7 +108,7 @@ func (p *Progress) Start() {
 		firstTime := true
 		for {
 			select {
-			case <-time.After(p.interval):
+			case <-time.After(p.param.Interval):
 				p.render(!firstTime)
 				firstTime = false
 			case <-p.quitCh:

@@ -38,22 +38,23 @@ func (b *Bar) Increment() {
 
 func (b *Bar) String() string {
 	buf := bytes.Buffer{}
-	buf.Grow(b.p.width + 2)
-	buf.WriteRune(b.p.lBracket)
+	param := &b.p.param
+	buf.Grow(param.Width + 2)
+	buf.WriteRune(param.LBracket)
 
-	full := b.curr * b.p.width / b.total
-	empty := b.p.width - full
+	full := b.curr * param.Width / b.total
+	empty := param.Width - full
 	if full > 0 {
 		if empty > 0 {
 			full--
 		}
-		buf.WriteString(strings.Repeat(string(b.p.full), full))
+		buf.WriteString(strings.Repeat(string(param.Full), full))
 		if empty > 0 {
-			buf.WriteRune(b.p.curr)
+			buf.WriteRune(param.Curr)
 		}
 	}
-	buf.WriteString(strings.Repeat(string(b.p.empty), empty))
+	buf.WriteString(strings.Repeat(string(param.Empty), empty))
 
-	buf.WriteRune(b.p.rBracket)
+	buf.WriteRune(param.RBracket)
 	return buf.String()
 }

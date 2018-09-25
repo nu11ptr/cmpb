@@ -148,16 +148,16 @@ func (b *Bar) String() string {
 	buf.Grow(w)
 
 	buf.WriteString(strings.Repeat(" ", param.PrePad))
-	buf.WriteString(strutil.Resize(b.key, param.Post, param.KeyWidth))
+	buf.WriteString(strutil.ResizeR(b.key, param.Post, param.KeyWidth))
 	buf.WriteString(param.KeyDiv)
 	buf.WriteRune(' ')
-	buf.WriteString(strutil.Resize(b.action, param.Post, param.ActionWidth))
+	buf.WriteString(strutil.ResizeR(b.action, param.Post, param.ActionWidth))
 	buf.WriteRune(' ')
-	buf.WriteString(strutil.Resize(b.preBarF(b.curr, b.total, b.start), param.Post, param.PreBarWidth))
+	buf.WriteString(strutil.ResizeL(b.preBarF(b.curr, b.total, b.start), param.Post, param.PreBarWidth))
 	buf.WriteRune(' ')
 	b.makeBar(param, buf)
 	buf.WriteRune(' ')
-	buf.WriteString(strutil.Resize(b.postBarF(b.curr, b.total, b.start), param.Post, param.PostBarWidth))
+	buf.WriteString(strutil.ResizeL(b.postBarF(b.curr, b.total, b.start), param.Post, param.PostBarWidth))
 
 	return buf.String()
 }

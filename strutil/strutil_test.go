@@ -58,19 +58,20 @@ func TestResize(t *testing.T) {
 	tests := []struct {
 		name, input, output, post string
 		l                         int
+		f                         func(string, string, int) string
 	}{
-		{"JustRight", color.HiCyanString("abc"), color.HiCyanString("abc"), post, 3},
-		{"TooShort", color.HiCyanString("abc"), color.HiCyanString("abc") + "   ", post, 6},
-		{"TooLong", color.HiCyanString("abcabcabc"), color.HiCyanString("abc") + post, post, 6},
+		{"JustRight", color.HiCyanString("abc"), color.HiCyanString("abc"), post, 3, strutil.ResizeL},
+		{"TooShortL", color.HiCyanString("abc"), "   " + color.HiCyanString("abc"), post, 6, strutil.ResizeL},
+		{"TooShortR", color.HiCyanString("abc"), color.HiCyanString("abc") + "   ", post, 6, strutil.ResizeR},
+		{"TooLong", color.HiCyanString("abcabcabc"), color.HiCyanString("abc") + post, post, 6, strutil.ResizeL},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			output := strutil.Resize(test.input, test.post, test.l)
+			output := test.f(test.input, test.post, test.l)
 			if output != test.output {
 				t.Error("want", test.output, "got", output)
 			}
-
 		})
 	}
 }

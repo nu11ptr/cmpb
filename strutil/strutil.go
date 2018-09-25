@@ -95,9 +95,19 @@ func Truncate(s string, l int) (string, bool) {
 	return buf.String(), true
 }
 
-// Resize makes sure string is exactly the length of l. If it isn't it will pad spaces at the
+// ResizeL makes sure string is exactly the length of l. If it isn't it will pad spaces at the
+// start as needed or truncate and indicate that via the post string
+func ResizeL(s, post string, l int) string {
+	return resize(s, post, l, false)
+}
+
+// ResizeR makes sure string is exactly the length of l. If it isn't it will pad spaces at the
 // end as needed or truncate and indicate that via the post string
-func Resize(s, post string, l int) string {
+func ResizeR(s, post string, l int) string {
+	return resize(s, post, l, true)
+}
+
+func resize(s, post string, l int, padRight bool) string {
 	postLen := Len(post)
 	if postLen > l {
 		panic("Post string must be shorter than desired length")
@@ -110,7 +120,10 @@ func Resize(s, post string, l int) string {
 	}
 	// Too short - pad to the right
 	if sLen < l {
-		return s + strings.Repeat(" ", l-sLen)
+		if padRight {
+			return s + strings.Repeat(" ", l-sLen)
+		}
+		return strings.Repeat(" ", l-sLen) + s
 	}
 	// Too long - truncate
 	s2, _ := Truncate(s, l-postLen)

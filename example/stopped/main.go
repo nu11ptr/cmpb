@@ -24,7 +24,14 @@ func main() {
 			for i := 0; i < total; i++ {
 				time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
 				action := actions[rand.Intn(len(actions))]
-				b.SetMessage(color.HiYellowString(action))
+
+				if rand.Intn(total) == 1 {
+					b.Stop(color.HiRedString("error!"))
+					break
+				} else {
+					b.SetMessage(color.HiYellowString(action))
+				}
+
 				b.Increment()
 			}
 		}()

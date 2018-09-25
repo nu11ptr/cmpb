@@ -13,11 +13,11 @@ import (
 
 // Bar represents a single progress bar
 type Bar struct {
-	key, action       string
-	curr, total       int
-	lastRender        bool
-	start             time.Time
-	preBarF, postBarF func(int, int, time.Time) string
+	key, msg            string
+	curr, total         int
+	lastRender, stopped bool
+	start               time.Time
+	preBarF, postBarF   func(int, int, time.Time, bool) string
 
 	p   *Progress
 	mut sync.Mutex
@@ -25,18 +25,18 @@ type Bar struct {
 
 func newBar(key string, total int, p *Progress) *Bar {
 	return &Bar{
-		key: key, action: "", total: total, start: time.Now(), preBarF: calcDur(), postBarF: calcPct, p: p,
+		key: key, msg: "", total: total, start: time.Now(), preBarF: calcDur(), postBarF: calcPct, p: p,
 	}
 }
 
-func calcDur() func(int, int, time.Time) string {
+func calcDur() func(int, int, time.Time, bool) string {
 	var final time.Time
 
-	return func(curr, total int, start time.Time) string {
+	return func(curr, total int, start time.Time, stopped bool) string {
 		last := time.Now()
 
 		// Record the time a single time on the last update so it doesn't keep updating after bar is done
-		if curr == total {
+		if curr == total || stopped {
 			if final.IsZero() {
 				final = last
 			}
@@ -47,13 +47,13 @@ func calcDur() func(int, int, time.Time) string {
 	}
 }
 
-func calcPct(curr, total int, start time.Time) string {
+func calcPct(curr, total int, start time.Time, stopped bool) string {
 	pct := (curr * 100) / total
 	return fmt.Sprintf(color.HiMagentaString("%d%%"), pct)
 }
 
 func (b *Bar) update(curr int) {
-	if b.curr < b.total {
+	if b.curr < b.total && !b.stopped {
 		if curr <= b.total {
 			b.curr = curr
 		} else {
@@ -63,14 +63,6 @@ func (b *Bar) update(curr int) {
 			b.lastRender = true
 		}
 	}
-}
-
-// SetAction sets the displayed current action
-func (b *Bar) SetAction(action string) {
-	b.mut.Lock()
-	defer b.mut.Unlock()
-
-	b.action = action
 }
 
 // Update updates the current status of the bar
@@ -87,6 +79,24 @@ func (b *Bar) Increment() {
 	defer b.mut.Unlock()
 
 	b.update(b.curr + 1)
+}
+
+// Stop stops the updating of the bar and sets a final msg
+func (b *Bar) Stop(msg string) {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	b.stopped = true
+	b.lastRender = true
+	b.msg = msg
+}
+
+// SetMessage sets the displayed current message
+func (b *Bar) SetMessage(msg string) {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	b.msg = msg
 }
 
 func (b *Bar) isLastRender() bool {
@@ -125,21 +135,23 @@ func (b *Bar) String() string {
 
 	buf := new(bytes.Buffer)
 	param := &b.p.param
-	w := param.PrePad + param.KeyWidth + len(param.KeyDiv) + param.ActionWidth + param.PreBarWidth +
-		param.BarWidth + param.PostBarWidth + 4
+	w := param.PrePad + param.KeyWidth + len(param.KeyDiv) + param.MsgWidth + param.PreBarWidth +
+		param.BarWidth + param.PostBarWidth + 4 // + spaces
 	buf.Grow(w)
 
 	buf.WriteString(strings.Repeat(" ", param.PrePad))
 	buf.WriteString(strutil.ResizeR(b.key, param.Post, param.KeyWidth))
 	buf.WriteString(param.KeyDiv)
 	buf.WriteRune(' ')
-	buf.WriteString(strutil.ResizeR(b.action, param.Post, param.ActionWidth))
+	buf.WriteString(strutil.ResizeR(b.msg, param.Post, param.MsgWidth))
 	buf.WriteRune(' ')
-	buf.WriteString(strutil.ResizeL(b.preBarF(b.curr, b.total, b.start), param.Post, param.PreBarWidth))
+	preBar := b.preBarF(b.curr, b.total, b.start, b.stopped)
+	buf.WriteString(strutil.ResizeL(preBar, param.Post, param.PreBarWidth))
 	buf.WriteRune(' ')
 	b.makeBar(param, buf)
 	buf.WriteRune(' ')
-	buf.WriteString(strutil.ResizeL(b.postBarF(b.curr, b.total, b.start), param.Post, param.PostBarWidth))
+	postBar := b.postBarF(b.curr, b.total, b.start, b.stopped)
+	buf.WriteString(strutil.ResizeL(postBar, param.Post, param.PostBarWidth))
 
 	return buf.String()
 }

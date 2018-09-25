@@ -14,7 +14,7 @@ const (
 
 	defaultPrePad       = 0
 	defaultKeyWidth     = 10
-	defaultActonWidth   = 20
+	defaultMsgWidth     = 20
 	defaultPreBarWidth  = 11 // Duration (max size = 00h 00m 00s)
 	defaultBarWidth     = 22 // Each char = 5% (+2 for left and right bracket)
 	defaultPostBarWidth = 4  // Percentage (max size = 100%)
@@ -38,7 +38,7 @@ type Param struct {
 	Out      io.Writer
 	ScrollUp func(int, io.Writer)
 
-	PrePad, KeyWidth, ActionWidth, PreBarWidth, BarWidth, PostBarWidth int
+	PrePad, KeyWidth, MsgWidth, PreBarWidth, BarWidth, PostBarWidth int
 
 	Post, KeyDiv, LBracket, RBracket, Empty, Full, Curr string
 }
@@ -48,7 +48,7 @@ func DefaultParam() *Param {
 	return &Param{
 		Interval: defaultInterval, Out: color.Output, ScrollUp: ansiScrollUp,
 
-		PrePad: defaultPrePad, KeyWidth: defaultKeyWidth, ActionWidth: defaultActonWidth,
+		PrePad: defaultPrePad, KeyWidth: defaultKeyWidth, MsgWidth: defaultMsgWidth,
 		PreBarWidth: defaultPreBarWidth, BarWidth: defaultBarWidth, PostBarWidth: defaultPostBarWidth,
 
 		Post: defaultPost, KeyDiv: defaultKeyDiv, LBracket: defaultLBracket,

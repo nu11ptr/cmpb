@@ -3,6 +3,7 @@ package cmpb
 import (
 	"bytes"
 	"strings"
+	"sync"
 
 	"github.com/nu11ptr/cmpb/strutil"
 )
@@ -13,15 +14,15 @@ type Bar struct {
 	curr, total int
 	lastRender  bool
 
-	p *Progress
+	p   *Progress
+	mut sync.Mutex
 }
 
 func newBar(key string, total int, p *Progress) *Bar {
 	return &Bar{key: key, total: total, p: p}
 }
 
-// Update updates the current status of the bar
-func (b *Bar) Update(curr int) {
+func (b *Bar) update(curr int) {
 	if b.curr < b.total {
 		if curr <= b.total {
 			b.curr = curr
@@ -34,9 +35,31 @@ func (b *Bar) Update(curr int) {
 	}
 }
 
+// Update updates the current status of the bar
+func (b *Bar) Update(curr int) {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	b.update(curr)
+}
+
 // Increment updates the current status of the bar by 1
 func (b *Bar) Increment() {
-	b.Update(b.curr + 1)
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	b.update(b.curr + 1)
+}
+
+func (b *Bar) isLastRender() bool {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	lr := b.lastRender
+	if lr {
+		b.lastRender = false
+	}
+	return lr
 }
 
 func (b *Bar) makeBar(param *Param, buf *bytes.Buffer) {
@@ -59,6 +82,9 @@ func (b *Bar) makeBar(param *Param, buf *bytes.Buffer) {
 }
 
 func (b *Bar) String() string {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
 	buf := new(bytes.Buffer)
 	param := &b.p.param
 	w := param.PrePad + param.KeyWidth + len(param.KeyDiv) + param.ActionWidth + param.PreBarWidth +

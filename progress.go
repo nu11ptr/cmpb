@@ -62,6 +62,7 @@ type Progress struct {
 
 	quitCh, waitCh chan struct{}
 	wait           sync.WaitGroup
+	mut            sync.Mutex
 
 	bars   []*Bar
 	barMap map[string]*Bar
@@ -87,6 +88,9 @@ func ansiScrollUp(rows int, out io.Writer) {
 
 // NewBar creates a new progress bar and adds it to the progress bar collection
 func (p *Progress) NewBar(key string, total int) *Bar {
+	p.mut.Lock()
+	defer p.mut.Unlock()
+
 	b := newBar(key, total, p)
 	p.bars = append(p.bars, b)
 	p.barMap[key] = b
@@ -96,11 +100,17 @@ func (p *Progress) NewBar(key string, total int) *Bar {
 
 // Bar returns the bar stored the given key. The value is nil if it can't be found
 func (p *Progress) Bar(key string) *Bar {
+	p.mut.Lock()
+	defer p.mut.Unlock()
+
 	b, _ := p.barMap[key]
 	return b
 }
 
 func (p *Progress) render(scrollUp bool) {
+	p.mut.Lock()
+	defer p.mut.Unlock()
+
 	if scrollUp {
 		p.param.ScrollUp(len(p.bars), p.param.Out)
 	}
@@ -109,8 +119,7 @@ func (p *Progress) render(scrollUp bool) {
 	}
 	// Done as 2nd pass so all bars are always rendered
 	for _, bar := range p.bars {
-		if bar.lastRender {
-			bar.lastRender = false
+		if bar.isLastRender() {
 			p.wait.Done()
 		}
 	}

@@ -35,7 +35,7 @@ func calcDur() func(int, int, time.Time) string {
 	return func(curr, total int, start time.Time) string {
 		last := time.Now()
 
-		// Record the time a single time on the last update
+		// Record the time a single time on the last update so it doesn't keep updating after bar is done
 		if curr == total {
 			if final.IsZero() {
 				final = last
@@ -43,25 +43,7 @@ func calcDur() func(int, int, time.Time) string {
 			last = final
 		}
 		dur := last.Sub(start)
-		dur = dur.Round(time.Second)
-
-		var buf bytes.Buffer
-		if dur >= time.Hour {
-			h := dur / time.Hour
-			dur -= h * time.Hour
-			buf.WriteString(fmt.Sprintf("%dh", h))
-		}
-		if dur >= time.Minute {
-			m := dur / time.Minute
-			dur -= m * time.Minute
-			buf.WriteString(fmt.Sprintf("%dm", m))
-		}
-		if dur >= time.Second {
-			s := dur / time.Second
-			dur -= s * time.Second
-			buf.WriteString(fmt.Sprintf("%ds", s))
-		}
-		return color.HiMagentaString(buf.String())
+		return color.HiMagentaString(strutil.FmtDuration(dur))
 	}
 }
 

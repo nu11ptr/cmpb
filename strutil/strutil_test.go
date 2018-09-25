@@ -2,6 +2,7 @@ package strutil_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/nu11ptr/cmpb/strutil"
@@ -69,6 +70,27 @@ func TestResize(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			output := test.f(test.input, test.post, test.l)
+			if output != test.output {
+				t.Error("want", test.output, "got", output)
+			}
+		})
+	}
+}
+
+func TestFmtDuration(t *testing.T) {
+	tests := []struct {
+		name, output string
+		input        time.Duration
+	}{
+		{"Zero", "0s", time.Duration(0)},
+		{"MinSec", "45m 23s", time.Duration((45 * time.Minute) + (23 * time.Second))},
+		{"HourMinSec", "67h 45m 23s",
+			time.Duration((67 * time.Hour) + (45 * time.Minute) + (23 * time.Second))},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			output := strutil.FmtDuration(test.input)
 			if output != test.output {
 				t.Error("want", test.output, "got", output)
 			}

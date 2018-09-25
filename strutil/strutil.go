@@ -2,7 +2,9 @@ package strutil
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
+	"time"
 )
 
 type strState int
@@ -128,4 +130,27 @@ func resize(s, post string, l int, padRight bool) string {
 	// Too long - truncate
 	s2, _ := Truncate(s, l-postLen)
 	return s2 + post
+}
+
+// FmtDuration formats a duration according to a specific format
+func FmtDuration(dur time.Duration) string {
+	buf := bytes.Buffer{}
+	buf.Grow(11) // Duration (max size = 00h 00m 00s)
+	dur = dur.Round(time.Second)
+
+	if dur >= time.Hour {
+		h := dur / time.Hour
+		dur -= h * time.Hour
+		buf.WriteString(fmt.Sprintf("%dh ", h))
+	}
+	if dur >= time.Minute {
+		m := dur / time.Minute
+		dur -= m * time.Minute
+		buf.WriteString(fmt.Sprintf("%dm ", m))
+	}
+	s := dur / time.Second
+	dur -= s * time.Second
+	buf.WriteString(fmt.Sprintf("%ds", s))
+
+	return buf.String()
 }

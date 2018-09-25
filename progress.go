@@ -15,7 +15,7 @@ const (
 	defaultPrePad       = 0
 	defaultKeyWidth     = 10
 	defaultActonWidth   = 20
-	defaultPreBarWidth  = 9  // Time (max size = 00h00m00s)
+	defaultPreBarWidth  = 11 // Duration (max size = 00h 00m 00s)
 	defaultBarWidth     = 22 // Each char = 5% (+2 for left and right bracket)
 	defaultPostBarWidth = 4  // Percentage (max size = 100%)
 

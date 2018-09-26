@@ -18,17 +18,26 @@ var (
 func main() {
 	p := cmpb.New()
 
+	colors := new(cmpb.BarColors)
+	colors.SetAll(color.HiYellowString)
+
 	for _, key := range keys {
 		b := p.NewBar(key, total)
 		go func() {
 			for i := 0; i < total; i++ {
 				time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
 
-				if rand.Intn(total) == 1 {
-					b.Stop(color.HiRedString("error!"))
+				if rand.Intn(total*3) == 1 {
+					colors.SetAll(color.HiRedString)
+					b.SetColors(colors)
+					b.Stop("error!")
 					break
 				} else {
 					action := actions[rand.Intn(len(actions))]
+					if i == total-1 {
+						colors.SetAll(color.HiGreenString)
+						b.SetColors(colors)
+					}
 					b.SetMessage(action)
 				}
 
@@ -37,6 +46,7 @@ func main() {
 		}()
 	}
 
+	p.SetColors(colors)
 	p.Start()
 	p.Wait()
 }

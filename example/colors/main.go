@@ -21,18 +21,19 @@ func main() {
 	colors := new(cmpb.BarColors)
 	colors.Post, colors.KeyDiv, colors.LBracket, colors.RBracket =
 		color.HiCyanString, color.HiCyanString, color.HiCyanString, color.HiCyanString
-	colors.Empty = color.HiYellowString
+	colors.Key = color.HiBlueString
+	colors.Msg, colors.Empty = color.HiYellowString, color.HiYellowString
 	colors.Full = color.HiGreenString
 	colors.Curr = color.GreenString
 	colors.PreBar, colors.PostBar = color.HiMagentaString, color.HiMagentaString
 
 	for _, key := range keys {
-		b := p.NewBar(color.HiBlueString(key), total)
+		b := p.NewBar(key, total)
 		go func() {
 			for i := 0; i < total; i++ {
 				time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
 				action := actions[rand.Intn(len(actions))]
-				b.SetMessage(color.HiYellowString(action))
+				b.SetMessage(action)
 				b.Increment()
 			}
 		}()

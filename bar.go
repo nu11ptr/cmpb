@@ -12,7 +12,8 @@ import (
 
 // BarColors represents a structure holding all bar drawing colors
 type BarColors struct {
-	Post, KeyDiv, PreBar, LBracket, Empty, Full, Curr, RBracket, PostBar func(string, ...interface{}) string
+	Post, Key, KeyDiv, Msg, PreBar, LBracket, Empty, Full, Curr, RBracket,
+	PostBar func(string, ...interface{}) string
 }
 
 // DefaultColors returns a set of default colors for rendering the bar
@@ -24,8 +25,8 @@ func DefaultColors() *BarColors {
 
 // SetAll sets all colors to the same color
 func (b *BarColors) SetAll(f func(string, ...interface{}) string) {
-	b.Post, b.KeyDiv, b.PreBar, b.LBracket, b.Empty, b.Full, b.Curr, b.RBracket, b.PostBar =
-		f, f, f, f, f, f, f, f, f
+	b.Post, b.Key, b.KeyDiv, b.Msg, b.PreBar, b.LBracket, b.Empty, b.Full, b.Curr, b.RBracket, b.PostBar =
+		f, f, f, f, f, f, f, f, f, f, f
 }
 
 func noOp(s string, _ ...interface{}) string { return s }
@@ -120,6 +121,14 @@ func (b *Bar) SetColors(colors *BarColors) {
 	b.colors = *colors
 }
 
+// GetColors returns a copy of the colors used by this bar
+func (b *Bar) GetColors() BarColors {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	return b.colors
+}
+
 // SetMessage sets the displayed current message
 func (b *Bar) SetMessage(msg string) {
 	b.mut.Lock()
@@ -170,10 +179,10 @@ func (b *Bar) String() string {
 	c := &b.colors
 
 	buf.WriteString(strings.Repeat(" ", param.PrePad))
-	buf.WriteString(strutil.ResizeR(b.key, c.Post(param.Post), param.KeyWidth))
+	buf.WriteString(strutil.ResizeR(c.Key(b.key), c.Post(param.Post), param.KeyWidth))
 	buf.WriteString(c.KeyDiv(string(param.KeyDiv)))
 	buf.WriteRune(' ')
-	buf.WriteString(strutil.ResizeR(b.msg, c.Post(param.Post), param.MsgWidth))
+	buf.WriteString(strutil.ResizeR(c.Msg(b.msg), c.Post(param.Post), param.MsgWidth))
 	buf.WriteRune(' ')
 	preBar := c.PreBar(b.preBarF(b.curr, b.total, b.start, b.stopped))
 	buf.WriteString(strutil.ResizeL(preBar, c.Post(param.Post), param.PreBarWidth))

@@ -47,7 +47,7 @@ type Param struct {
 // DefaultParam builds a Param struct with default values
 func DefaultParam() *Param {
 	return &Param{
-		Interval: defaultInterval, Out: color.Output, ScrollUp: ansiScrollUp,
+		Interval: defaultInterval, Out: color.Output, ScrollUp: AnsiScrollUp,
 
 		PrePad: defaultPrePad, KeyWidth: defaultKeyWidth, MsgWidth: defaultMsgWidth,
 		PreBarWidth: defaultPreBarWidth, BarWidth: defaultBarWidth, PostBarWidth: defaultPostBarWidth,
@@ -61,9 +61,10 @@ func DefaultParam() *Param {
 type Progress struct {
 	param Param
 
-	quitCh, waitCh chan struct{}
-	wait           sync.WaitGroup
-	mut            sync.Mutex
+	quitCh  chan struct{}
+	wait    sync.WaitGroup
+	mut     sync.Mutex
+	stopped bool
 
 	bars   []*Bar
 	barMap map[string]*Bar
@@ -73,8 +74,8 @@ type Progress struct {
 func NewWithParam(param *Param) *Progress {
 	return &Progress{
 		param:  *param,
-		quitCh: make(chan struct{}), waitCh: make(chan struct{}),
-		bars: make([]*Bar, 0, slMapCap), barMap: make(map[string]*Bar, slMapCap),
+		quitCh: make(chan struct{}),
+		bars:   make([]*Bar, 0, slMapCap), barMap: make(map[string]*Bar, slMapCap),
 	}
 }
 
@@ -83,7 +84,8 @@ func New() *Progress {
 	return NewWithParam(DefaultParam())
 }
 
-func ansiScrollUp(rows int, out io.Writer) {
+// AnsiScrollUp uses ANSI escape codes to do the scoll up action
+func AnsiScrollUp(rows int, out io.Writer) {
 	fmt.Fprintf(out, "\x1b[%dA", rows)
 }
 
@@ -92,6 +94,9 @@ func (p *Progress) NewBar(key string, total int) *Bar {
 	p.mut.Lock()
 	defer p.mut.Unlock()
 
+	if p.stopped {
+		panic("Tried to add new bar to stopped progress bar")
+	}
 	b := newBar(key, total, p)
 	p.bars = append(p.bars, b)
 	p.barMap[key] = b
@@ -128,7 +133,7 @@ func (p *Progress) render(scrollUp bool) {
 	for _, bar := range p.bars {
 		fmt.Fprintln(p.param.Out, bar.String())
 	}
-	// Done as 2nd pass so all bars are always rendered
+	// Done as 2nd pass so all bars are always rendered per cycle
 	for _, bar := range p.bars {
 		if bar.isLastRender() {
 			p.wait.Done()
@@ -138,38 +143,43 @@ func (p *Progress) render(scrollUp bool) {
 
 // Start begins rendering of the progress bars
 func (p *Progress) Start() {
+	p.mut.Lock()
+	if p.stopped {
+		p.mut.Unlock()
+		panic("Attempted to start a stopped progess bar")
+	}
+	p.mut.Unlock()
+
+	// Render immediately in case it finishes the moment it starts
+	p.render(false)
+
 	go func() {
-		firstTime := true
 		for {
 			select {
 			case <-time.After(p.param.Interval):
-				p.render(!firstTime)
-				firstTime = false
+				p.render(true)
 			case <-p.quitCh:
-				break
+				close(p.quitCh)
+				return
 			}
 		}
 	}()
 }
 
-// Stop stops the render of the progress bars
-func (p *Progress) Stop() {
-	select {
-	case <-p.quitCh:
-	default:
-		close(p.quitCh)
+// Stop stops the render of the progress bars assigning a msg (if not any empty string)
+func (p *Progress) Stop(msg string) {
+	p.mut.Lock()
+	defer p.mut.Unlock()
+
+	p.stopped = true
+	for _, bar := range p.bars {
+		bar.Stop(msg)
 	}
 }
 
 // Wait waits for progress to be finished or cancelled. It can only be called once
 func (p *Progress) Wait() {
-	go func() {
-		p.wait.Wait()
-		close(p.waitCh)
-	}()
-
-	select {
-	case <-p.quitCh:
-	case <-p.waitCh:
-	}
+	p.wait.Wait()
+	p.quitCh <- struct{}{}
+	<-p.quitCh
 }

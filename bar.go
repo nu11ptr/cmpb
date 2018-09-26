@@ -83,6 +83,7 @@ func (b *Bar) update(curr int) {
 		}
 		if b.curr == b.total {
 			b.lastRender = true
+			b.stopped = true
 		}
 	}
 }
@@ -103,14 +104,18 @@ func (b *Bar) Increment() {
 	b.update(b.curr + 1)
 }
 
-// Stop stops the updating of the bar and sets a final msg
+// Stop stops the updating of the bar and sets a final msg (if not ab empty string)
 func (b *Bar) Stop(msg string) {
 	b.mut.Lock()
 	defer b.mut.Unlock()
 
-	b.stopped = true
-	b.lastRender = true
-	b.msg = msg
+	if !b.stopped {
+		b.stopped = true
+		b.lastRender = true
+		if msg != "" {
+			b.msg = msg
+		}
+	}
 }
 
 // SetColors sets the colors used to render the bar
@@ -141,6 +146,7 @@ func (b *Bar) isLastRender() bool {
 	b.mut.Lock()
 	defer b.mut.Unlock()
 
+	// It can only be the last render a single time - subsequent calls return false
 	lr := b.lastRender
 	if lr {
 		b.lastRender = false

@@ -7,9 +7,28 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/nu11ptr/cmpb/strutil"
 )
+
+// BarColors represents a structure holding all bar drawing colors
+type BarColors struct {
+	Post, KeyDiv, PreBar, LBracket, Empty, Full, Curr, RBracket, PostBar func(string, ...interface{}) string
+}
+
+// DefaultColors returns a set of default colors for rendering the bar
+func DefaultColors() *BarColors {
+	colors := new(BarColors)
+	colors.SetAll(noOp)
+	return colors
+}
+
+// SetAll sets all colors to the same color
+func (b *BarColors) SetAll(f func(string, ...interface{}) string) {
+	b.Post, b.KeyDiv, b.PreBar, b.LBracket, b.Empty, b.Full, b.Curr, b.RBracket, b.PostBar =
+		f, f, f, f, f, f, f, f, f
+}
+
+func noOp(s string, _ ...interface{}) string { return s }
 
 // Bar represents a single progress bar
 type Bar struct {
@@ -18,6 +37,7 @@ type Bar struct {
 	lastRender, stopped bool
 	start               time.Time
 	preBarF, postBarF   func(int, int, time.Time, bool) string
+	colors              BarColors
 
 	p   *Progress
 	mut sync.Mutex
@@ -25,7 +45,8 @@ type Bar struct {
 
 func newBar(key string, total int, p *Progress) *Bar {
 	return &Bar{
-		key: key, msg: "", total: total, start: time.Now(), preBarF: calcDur(), postBarF: calcPct, p: p,
+		key: key, msg: "", total: total, start: time.Now(), preBarF: calcDur(), postBarF: calcPct,
+		colors: *DefaultColors(), p: p,
 	}
 }
 
@@ -43,13 +64,13 @@ func calcDur() func(int, int, time.Time, bool) string {
 			last = final
 		}
 		dur := last.Sub(start)
-		return color.HiMagentaString(strutil.FmtDuration(dur))
+		return strutil.FmtDuration(dur)
 	}
 }
 
 func calcPct(curr, total int, start time.Time, stopped bool) string {
 	pct := (curr * 100) / total
-	return fmt.Sprintf(color.HiMagentaString("%d%%"), pct)
+	return fmt.Sprintf("%d%%", pct)
 }
 
 func (b *Bar) update(curr int) {
@@ -91,6 +112,14 @@ func (b *Bar) Stop(msg string) {
 	b.msg = msg
 }
 
+// SetColors sets the colors used to render the bar
+func (b *Bar) SetColors(colors *BarColors) {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	b.colors = *colors
+}
+
 // SetMessage sets the displayed current message
 func (b *Bar) SetMessage(msg string) {
 	b.mut.Lock()
@@ -110,8 +139,8 @@ func (b *Bar) isLastRender() bool {
 	return lr
 }
 
-func (b *Bar) makeBar(param *Param, buf *bytes.Buffer) {
-	buf.WriteString(param.LBracket)
+func (b *Bar) makeBar(c *BarColors, param *Param, buf *bytes.Buffer) {
+	buf.WriteString(c.LBracket(string(param.LBracket)))
 
 	full := b.curr * (param.BarWidth - 2) / b.total
 	empty := (param.BarWidth - 2) - full
@@ -119,14 +148,14 @@ func (b *Bar) makeBar(param *Param, buf *bytes.Buffer) {
 		if empty > 0 {
 			full--
 		}
-		buf.WriteString(strings.Repeat(string(param.Full), full))
+		buf.WriteString(c.Full(strings.Repeat(string(param.Full), full)))
 		if empty > 0 {
-			buf.WriteString(param.Curr)
+			buf.WriteString(c.Curr(string(param.Curr)))
 		}
 	}
-	buf.WriteString(strings.Repeat(string(param.Empty), empty))
+	buf.WriteString(c.Empty(strings.Repeat(string(param.Empty), empty)))
 
-	buf.WriteString(param.RBracket)
+	buf.WriteString(c.RBracket(string(param.RBracket)))
 }
 
 func (b *Bar) String() string {
@@ -135,23 +164,24 @@ func (b *Bar) String() string {
 
 	buf := new(bytes.Buffer)
 	param := &b.p.param
-	w := param.PrePad + param.KeyWidth + len(param.KeyDiv) + param.MsgWidth + param.PreBarWidth +
-		param.BarWidth + param.PostBarWidth + 4 // + spaces
+	w := param.PrePad + param.KeyWidth + param.MsgWidth + param.PreBarWidth +
+		param.BarWidth + param.PostBarWidth + 5 // spaces + keyDiv
 	buf.Grow(w)
+	c := &b.colors
 
 	buf.WriteString(strings.Repeat(" ", param.PrePad))
-	buf.WriteString(strutil.ResizeR(b.key, param.Post, param.KeyWidth))
-	buf.WriteString(param.KeyDiv)
+	buf.WriteString(strutil.ResizeR(b.key, c.Post(param.Post), param.KeyWidth))
+	buf.WriteString(c.KeyDiv(string(param.KeyDiv)))
 	buf.WriteRune(' ')
-	buf.WriteString(strutil.ResizeR(b.msg, param.Post, param.MsgWidth))
+	buf.WriteString(strutil.ResizeR(b.msg, c.Post(param.Post), param.MsgWidth))
 	buf.WriteRune(' ')
-	preBar := b.preBarF(b.curr, b.total, b.start, b.stopped)
-	buf.WriteString(strutil.ResizeL(preBar, param.Post, param.PreBarWidth))
+	preBar := c.PreBar(b.preBarF(b.curr, b.total, b.start, b.stopped))
+	buf.WriteString(strutil.ResizeL(preBar, c.Post(param.Post), param.PreBarWidth))
 	buf.WriteRune(' ')
-	b.makeBar(param, buf)
+	b.makeBar(c, param, buf)
 	buf.WriteRune(' ')
-	postBar := b.postBarF(b.curr, b.total, b.start, b.stopped)
-	buf.WriteString(strutil.ResizeL(postBar, param.Post, param.PostBarWidth))
+	postBar := c.PostBar(b.postBarF(b.curr, b.total, b.start, b.stopped))
+	buf.WriteString(strutil.ResizeL(postBar, c.Post(param.Post), param.PostBarWidth))
 
 	return buf.String()
 }

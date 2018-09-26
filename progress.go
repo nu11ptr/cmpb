@@ -23,13 +23,13 @@ const (
 )
 
 var (
-	defaultPost     = color.HiCyanString("...")
-	defaultKeyDiv   = color.HiCyanString(":")
-	defaultLBracket = color.HiCyanString("[")
-	defaultRBracket = color.HiCyanString("]")
-	defaultEmpty    = color.HiYellowString("-")
-	defaultFull     = color.HiGreenString("=")
-	defaultCurr     = color.GreenString(">")
+	defaultPost     = "..."
+	defaultKeyDiv   = ':'
+	defaultLBracket = '['
+	defaultRBracket = ']'
+	defaultEmpty    = '-'
+	defaultFull     = '='
+	defaultCurr     = '>'
 )
 
 // Param represents the parameters for a Progress
@@ -40,7 +40,8 @@ type Param struct {
 
 	PrePad, KeyWidth, MsgWidth, PreBarWidth, BarWidth, PostBarWidth int
 
-	Post, KeyDiv, LBracket, RBracket, Empty, Full, Curr string
+	Post                                          string
+	KeyDiv, LBracket, RBracket, Empty, Full, Curr rune
 }
 
 // DefaultParam builds a Param struct with default values
@@ -105,6 +106,16 @@ func (p *Progress) Bar(key string) *Bar {
 
 	b, _ := p.barMap[key]
 	return b
+}
+
+// SetColors sets the colors used to render all the bars part of this progress
+func (p *Progress) SetColors(colors *BarColors) {
+	p.mut.Lock()
+	defer p.mut.Unlock()
+
+	for _, bar := range p.bars {
+		bar.SetColors(colors)
+	}
 }
 
 func (p *Progress) render(scrollUp bool) {

@@ -11,7 +11,7 @@ import (
 const total = 100
 
 var (
-	keys    = []string{"server100", "server101", "server102"}
+	keys    = []string{"server1000", "server1001", "server1002"}
 	actions = []string{"downloading...", "compiling source...", "fetching...", "committing work..."}
 )
 
@@ -19,7 +19,7 @@ func main() {
 	p := cmpb.New()
 
 	for _, key := range keys {
-		b := p.NewBar(color.HiBlueString(key), total)
+		b := p.NewBar(key, total)
 		go func() {
 			for i := 0; i < total; i++ {
 				time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
@@ -29,7 +29,7 @@ func main() {
 					b.Stop(color.HiRedString("error!"))
 					break
 				} else {
-					b.SetMessage(color.HiYellowString(action))
+					b.SetMessage(action)
 				}
 
 				b.Increment()

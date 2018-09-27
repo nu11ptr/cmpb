@@ -46,12 +46,13 @@ type Bar struct {
 
 func newBar(key string, total int, p *Progress) *Bar {
 	return &Bar{
-		key: key, msg: "", total: total, start: time.Now(), preBarF: calcDur(), postBarF: calcPct,
+		key: key, msg: "", total: total, start: time.Now(), preBarF: CalcDur(), postBarF: CalcPct,
 		colors: *DefaultColors(), p: p,
 	}
 }
 
-func calcDur() func(int, int, time.Time, bool) string {
+// CalcDur calculates the duration since start time and returns a string
+func CalcDur() func(int, int, time.Time, bool) string {
 	var final time.Time
 
 	return func(curr, total int, start time.Time, stopped bool) string {
@@ -69,9 +70,31 @@ func calcDur() func(int, int, time.Time, bool) string {
 	}
 }
 
-func calcPct(curr, total int, start time.Time, stopped bool) string {
+// CalcSteps calculates the steps completed so far and returns a string
+func CalcSteps(curr, total int, start time.Time, stopped bool) string {
+	return fmt.Sprintf("(%d/%d)", curr, total)
+}
+
+// CalcPct calculates the percentage of work complete and returns as a string
+func CalcPct(curr, total int, start time.Time, stopped bool) string {
 	pct := (curr * 100) / total
 	return fmt.Sprintf("%d%%", pct)
+}
+
+// SetPreBar sets the prebar function decorator
+func (b *Bar) SetPreBar(f func(int, int, time.Time, bool) string) {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	b.preBarF = f
+}
+
+// SetPostBar sets the postbar function decorator
+func (b *Bar) SetPostBar(f func(int, int, time.Time, bool) string) {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	b.postBarF = f
 }
 
 func (b *Bar) update(curr int) {

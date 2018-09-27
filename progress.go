@@ -113,6 +113,26 @@ func (p *Progress) Bar(key string) *Bar {
 	return b
 }
 
+// SetPreBar sets the prebar function decorator
+func (p *Progress) SetPreBar(f func(int, int, time.Time, bool) string) {
+	p.mut.Lock()
+	defer p.mut.Unlock()
+
+	for _, bar := range p.bars {
+		bar.SetPreBar(f)
+	}
+}
+
+// SetPostBar sets the postbar function decorator
+func (p *Progress) SetPostBar(f func(int, int, time.Time, bool) string) {
+	p.mut.Lock()
+	defer p.mut.Unlock()
+
+	for _, bar := range p.bars {
+		bar.SetPostBar(f)
+	}
+}
+
 // SetColors sets the colors used to render all the bars part of this progress
 func (p *Progress) SetColors(colors *BarColors) {
 	p.mut.Lock()

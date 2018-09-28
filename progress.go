@@ -84,7 +84,7 @@ func New() *Progress {
 	return NewWithParam(DefaultParam())
 }
 
-// AnsiScrollUp uses ANSI escape codes to do the scoll up action
+// AnsiScrollUp uses ANSI escape codes to do the scroll up action
 func AnsiScrollUp(rows int, out io.Writer) {
 	fmt.Fprintf(out, "\x1b[%dA", rows)
 }

@@ -6,6 +6,7 @@ clone_folder: c:\gopath\src\github.com\nu11ptr\cmpb
 
 environment:
   GOPATH: c:\gopath
+  PATH: %PATH%;C:\msys64\mingw64\bin\
 
 deploy: false
 

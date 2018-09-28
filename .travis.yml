@@ -22,7 +22,7 @@ before_script:
 
 script:
   - go vet -all ./...
-  - go test -race -v -coverprofile=c.out
+  - go test -race -v -coverprofile=c.out ./...
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then $GOPATH/bin/goveralls -service=travis-ci; fi
 
 after_script:

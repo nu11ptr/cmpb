@@ -1,0 +1,19 @@
+version: build-{build}.{branch}
+
+platform: x64
+
+clone_folder: c:\gopath\src\github.com\nu11ptr\cmpb
+
+environment:
+  GOPATH: c:\gopath
+
+deploy: false
+
+build_script:
+  - go build -v ./...
+
+before_test:
+  - go vet -all ./...
+
+test_script:
+  - go test -v -race ./...

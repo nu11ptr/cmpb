@@ -9,7 +9,7 @@
 A color multi-progress bar for Go terminal applications. Works on ANSI compatible terminals... and also on Windows!
 
 # Demo
-![color demo](demo.svg)
+![color demo](demo.gif)
 
 # Demo Source
 

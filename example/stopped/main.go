@@ -25,7 +25,7 @@ func main() {
 				time.Sleep(time.Duration(rand.Intn(250)) * time.Millisecond)
 
 				if rand.Intn(total) == 1 {
-					b.Stop(color.HiRedString("error!"))
+					b.Stop("error!", "")
 					break
 				} else {
 					action := actions[rand.Intn(len(actions))]
@@ -37,6 +37,9 @@ func main() {
 		}()
 	}
 
+	colors := cmpb.DefaultColors()
+	colors.StopMsg = color.HiRedString
+	p.SetColors(colors)
 	p.Start()
 	p.Wait()
 }

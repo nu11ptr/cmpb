@@ -18,15 +18,6 @@ var (
 func main() {
 	p := cmpb.New()
 
-	colors := new(cmpb.BarColors)
-	colors.Post, colors.KeyDiv, colors.LBracket, colors.RBracket =
-		color.HiCyanString, color.HiCyanString, color.HiCyanString, color.HiCyanString
-	colors.Key = color.HiBlueString
-	colors.Msg, colors.Empty = color.HiYellowString, color.HiYellowString
-	colors.Full = color.HiGreenString
-	colors.Curr = color.GreenString
-	colors.PreBar, colors.PostBar = color.HiMagentaString, color.HiMagentaString
-
 	for _, key := range keys {
 		b := p.NewBar(key, total)
 		go func() {
@@ -38,6 +29,15 @@ func main() {
 			}
 		}()
 	}
+
+	colors := cmpb.DefaultColors()
+	colors.Post, colors.KeyDiv, colors.LBracket, colors.RBracket =
+		color.HiCyanString, color.HiCyanString, color.HiCyanString, color.HiCyanString
+	colors.Key = color.HiBlueString
+	colors.Msg, colors.Empty = color.HiYellowString, color.HiYellowString
+	colors.Full = color.HiGreenString
+	colors.Curr = color.GreenString
+	colors.PreBar, colors.PostBar = color.HiMagentaString, color.HiMagentaString
 
 	p.SetColors(colors)
 	p.Start()

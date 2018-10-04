@@ -13,7 +13,7 @@ import (
 // BarColors represents a structure holding all bar drawing colors
 type BarColors struct {
 	Post, Key, KeyDiv, Msg, PreBar, LBracket, Empty, Full, Curr, RBracket,
-	PostBar func(string, ...interface{}) string
+	PostBar, StopMsg, StopExtMsg func(string, ...interface{}) string
 }
 
 // DefaultColors returns a set of default colors for rendering the bar
@@ -25,20 +25,20 @@ func DefaultColors() *BarColors {
 
 // SetAll sets all colors to the same color
 func (b *BarColors) SetAll(f func(string, ...interface{}) string) {
-	b.Post, b.Key, b.KeyDiv, b.Msg, b.PreBar, b.LBracket, b.Empty, b.Full, b.Curr, b.RBracket, b.PostBar =
-		f, f, f, f, f, f, f, f, f, f, f
+	b.Post, b.Key, b.KeyDiv, b.Msg, b.PreBar, b.LBracket, b.Empty, b.Full, b.Curr, b.RBracket,
+		b.PostBar, b.StopMsg, b.StopExtMsg = f, f, f, f, f, f, f, f, f, f, f, f, f
 }
 
 func noOp(s string, _ ...interface{}) string { return s }
 
 // Bar represents a single progress bar
 type Bar struct {
-	key, msg            string
-	curr, total         int
-	lastRender, stopped bool
-	start               time.Time
-	preBarF, postBarF   func(int, int, time.Time, bool) string
-	colors              BarColors
+	key, msg, extMsg         string
+	curr, total, extMsgLines int
+	lastRender, stopped      bool
+	start                    time.Time
+	preBarF, postBarF        func(int, int, time.Time, bool) string
+	colors                   BarColors
 
 	p   *Progress
 	mut sync.Mutex
@@ -128,7 +128,7 @@ func (b *Bar) Increment() {
 }
 
 // Stop stops the updating of the bar and sets a final msg (if not ab empty string)
-func (b *Bar) Stop(msg string) {
+func (b *Bar) Stop(msg, extMsg string) {
 	b.mut.Lock()
 	defer b.mut.Unlock()
 
@@ -136,9 +136,20 @@ func (b *Bar) Stop(msg string) {
 		b.stopped = true
 		b.lastRender = true
 		if msg != "" {
-			b.msg = msg
+			b.msg = b.colors.StopMsg(msg)
+		}
+		if extMsg != "" {
+			b.extMsg = "\t" + b.colors.Key(b.key) + b.colors.KeyDiv(": ") + b.colors.StopExtMsg(extMsg)
+			b.extMsgLines = strings.Count(extMsg, "\n") + 1
 		}
 	}
+}
+
+func (b *Bar) extendedMsg() (string, int) {
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	return b.extMsg, b.extMsgLines
 }
 
 // SetColors sets the colors used to render the bar

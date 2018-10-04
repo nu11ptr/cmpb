@@ -61,10 +61,11 @@ func DefaultParam() *Param {
 type Progress struct {
 	param Param
 
-	quitCh  chan struct{}
-	wait    sync.WaitGroup
-	mut     sync.Mutex
-	stopped bool
+	quitCh      chan struct{}
+	wait        sync.WaitGroup
+	mut         sync.Mutex
+	stopped     bool
+	scrollLines int
 
 	bars   []*Bar
 	barMap map[string]*Bar
@@ -148,12 +149,22 @@ func (p *Progress) render(scrollUp bool) {
 	defer p.mut.Unlock()
 
 	if scrollUp {
-		p.param.ScrollUp(len(p.bars), p.param.Out)
+		p.param.ScrollUp(p.scrollLines, p.param.Out)
 	}
 	for _, bar := range p.bars {
 		fmt.Fprintln(p.param.Out, bar.String())
 	}
-	// Done as 2nd pass so all bars are always rendered per cycle
+	// By doing this after scrollup, we calculate this based on what we actually rendered - avoiding
+	// a race condition where a msg was added but we hadn't yet rendered it
+	p.scrollLines = len(p.bars)
+	for _, bar := range p.bars {
+		extMsg, extMsgLines := bar.extendedMsg()
+		p.scrollLines += extMsgLines
+		if extMsg != "" {
+			fmt.Fprintln(p.param.Out, extMsg)
+		}
+	}
+	// Done as another pass so all bars are always rendered per cycle
 	for _, bar := range p.bars {
 		if bar.isLastRender() {
 			p.wait.Done()
@@ -187,13 +198,13 @@ func (p *Progress) Start() {
 }
 
 // Stop stops the render of the progress bars assigning a msg (if not any empty string)
-func (p *Progress) Stop(msg string) {
+func (p *Progress) Stop(msg, extMsg string) {
 	p.mut.Lock()
 	defer p.mut.Unlock()
 
 	p.stopped = true
 	for _, bar := range p.bars {
-		bar.Stop(msg)
+		bar.Stop(msg, extMsg)
 	}
 }
 

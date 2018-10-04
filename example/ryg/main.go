@@ -30,7 +30,7 @@ func main() {
 				if rand.Intn(total*3) == 1 {
 					colors.SetAll(color.HiRedString)
 					b.SetColors(colors)
-					b.Stop("error!")
+					b.Stop("error!", "A massive error occurred:\n\t\tThe error is catastrophic and cannot be recovered from")
 					break
 				} else {
 					action := actions[rand.Intn(len(actions))]

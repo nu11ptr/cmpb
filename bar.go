@@ -33,18 +33,18 @@ func noOp(s string, _ ...interface{}) string { return s }
 
 // Bar represents a single progress bar
 type Bar struct {
-	key, msg, extMsg         string
-	curr, total, extMsgLines int
-	lastRender, stopped      bool
-	start                    time.Time
-	preBarF, postBarF        func(int, int, time.Time, bool) string
-	colors                   BarColors
+	key, msg, extMsg    string
+	curr, total         int
+	lastRender, stopped bool
+	start               time.Time
+	preBarF, postBarF   func(int, int, time.Time, bool) string
+	colors              BarColors
 
-	p   *Progress
+	p   *Param
 	mut sync.Mutex
 }
 
-func newBar(key string, total int, p *Progress) *Bar {
+func newBar(key string, total int, p *Param) *Bar {
 	return &Bar{
 		key: key, msg: "", total: total, start: time.Now(), preBarF: CalcDur(), postBarF: CalcPct,
 		colors: *DefaultColors(), p: p,
@@ -139,17 +139,20 @@ func (b *Bar) Stop(msg, extMsg string) {
 			b.msg = b.colors.StopMsg(msg)
 		}
 		if extMsg != "" {
-			b.extMsg = "\t" + b.colors.Key(b.key) + b.colors.KeyDiv(": ") + b.colors.StopExtMsg(extMsg)
-			b.extMsgLines = strings.Count(extMsg, "\n") + 1
+			b.extMsg = b.colors.StopExtMsg(extMsg)
+			// Only prepend the key name when rendered below the bars
+			if !b.p.InlineExtMsg {
+				b.extMsg = b.colors.Key(b.key) + b.colors.KeyDiv(": ") + b.extMsg
+			}
 		}
 	}
 }
 
-func (b *Bar) extendedMsg() (string, int) {
+func (b *Bar) extendedMsg() string {
 	b.mut.Lock()
 	defer b.mut.Unlock()
 
-	return b.extMsg, b.extMsgLines
+	return b.extMsg
 }
 
 // SetColors sets the colors used to render the bar
@@ -212,7 +215,7 @@ func (b *Bar) String() string {
 	defer b.mut.Unlock()
 
 	buf := new(bytes.Buffer)
-	param := &b.p.param
+	param := b.p
 	w := param.PrePad + param.KeyWidth + param.MsgWidth + param.PreBarWidth +
 		param.BarWidth + param.PostBarWidth + 5 // spaces + keyDiv
 	buf.Grow(w)

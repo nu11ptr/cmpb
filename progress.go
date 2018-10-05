@@ -3,10 +3,12 @@ package cmpb
 import (
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/nu11ptr/cmpb/strutil"
 )
 
 const (
@@ -34,9 +36,10 @@ var (
 
 // Param represents the parameters for a Progress
 type Param struct {
-	Interval time.Duration
-	Out      io.Writer
-	ScrollUp func(int, io.Writer)
+	Interval     time.Duration
+	Out          io.Writer
+	ScrollUp     func(int, io.Writer)
+	InlineExtMsg bool
 
 	PrePad, KeyWidth, MsgWidth, PreBarWidth, BarWidth, PostBarWidth int
 
@@ -98,7 +101,7 @@ func (p *Progress) NewBar(key string, total int) *Bar {
 	if p.stopped {
 		panic("Tried to add new bar to stopped progress bar")
 	}
-	b := newBar(key, total, p)
+	b := newBar(key, total, &p.param)
 	p.bars = append(p.bars, b)
 	p.barMap[key] = b
 	p.wait.Add(1)
@@ -144,6 +147,21 @@ func (p *Progress) SetColors(colors *BarColors) {
 	}
 }
 
+func (p *Progress) renderExtMsg(bar *Bar, barLen int) {
+	extMsg := bar.extendedMsg()
+	if extMsg == "" {
+		return
+	}
+	lines := strings.Split(extMsg, "\n")
+	p.scrollLines += len(lines)
+
+	for _, line := range lines {
+		// Use spaces instead of tab so anything on screen is overwritten
+		str := strutil.ResizeR("        "+line, p.param.Post, barLen)
+		fmt.Fprintln(p.param.Out, str)
+	}
+}
+
 func (p *Progress) render(scrollUp bool) {
 	p.mut.Lock()
 	defer p.mut.Unlock()
@@ -151,17 +169,24 @@ func (p *Progress) render(scrollUp bool) {
 	if scrollUp {
 		p.param.ScrollUp(p.scrollLines, p.param.Out)
 	}
-	for _, bar := range p.bars {
-		fmt.Fprintln(p.param.Out, bar.String())
-	}
 	// By doing this after scrollup, we calculate this based on what we actually rendered - avoiding
 	// a race condition where a msg was added but we hadn't yet rendered it
 	p.scrollLines = len(p.bars)
+	barLen := 0
 	for _, bar := range p.bars {
-		extMsg, extMsgLines := bar.extendedMsg()
-		p.scrollLines += extMsgLines
-		if extMsg != "" {
-			fmt.Fprintln(p.param.Out, extMsg)
+		barStr := bar.String()
+		barLen = len(barStr)
+		fmt.Fprintln(p.param.Out, barStr)
+		if p.param.InlineExtMsg {
+			p.renderExtMsg(bar, barLen)
+		}
+	}
+	// If not inline, we then rendor after all bars are rendered
+	if !p.param.InlineExtMsg {
+		for _, bar := range p.bars {
+			if !p.param.InlineExtMsg {
+				p.renderExtMsg(bar, barLen)
+			}
 		}
 	}
 	// Done as another pass so all bars are always rendered per cycle

@@ -16,7 +16,9 @@ var (
 )
 
 func main() {
-	p := cmpb.New()
+	param := cmpb.DefaultParam()
+	param.InlineExtMsg = false
+	p := cmpb.NewWithParam(param)
 
 	colors := new(cmpb.BarColors)
 	colors.SetAll(color.HiYellowString)
@@ -30,15 +32,17 @@ func main() {
 				if rand.Intn(total*3) == 1 {
 					colors.SetAll(color.HiRedString)
 					b.SetColors(colors)
-					b.Stop("error!", "A massive error occurred:\n\t\tThe error is catastrophic and cannot be recovered from")
+					b.Stop("error!", "A massive error occurred:\n    The error is catastrophic and cannot be recovered from")
 					break
 				} else {
-					action := actions[rand.Intn(len(actions))]
 					if i == total-1 {
 						colors.SetAll(color.HiGreenString)
 						b.SetColors(colors)
+						b.SetMessage("completed")
+					} else {
+						action := actions[rand.Intn(len(actions))]
+						b.SetMessage(action)
 					}
-					b.SetMessage(action)
 				}
 
 				b.Increment()

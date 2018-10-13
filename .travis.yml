@@ -13,6 +13,7 @@ go:
 os:
   - linux
   - osx
+  - windows
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then go get github.com/mattn/goveralls; fi
